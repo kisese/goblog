@@ -1,26 +1,27 @@
 package main
 
 import (
+	"blog/api/controller"
+	"blog/api/repository"
+	"blog/api/routes"
+	"blog/api/service"
 	"blog/infrastructure"
-	"fmt"
-	"github.com/gin-gonic/gin"
-	"log"
-	"net/http"
+	"blog/models"
+	mainRouter "blog/routes"
 )
 
 func main() {
 
-	router := gin.Default()
+	infrastructure.LoadEnv()                                    //loading env
+	router := mainRouter.NewGinRouter()                         //router has been initialized and configured
+	db := infrastructure.NewDatabase()                          // databse has been initialized and configured
+	postRepository := repository.NewPostRepository(db)          // repository are being setup
+	postService := service.NewPostService(postRepository)       // service are being setup
+	postController := controller.NewPostController(postService) // controller are being set up
+	postRoute := routes.NewPostRoute(postController, router)    // post routes are initialized
+	postRoute.Setup()                                           // post routes are being setup
 
-	router.GET("/", func(context *gin.Context) {
-		fmt.Println("Hoola holla holla")
-		log.Println("Hoola holla hollads")
+	db.DB.AutoMigrate(&models.Post{}) // migrating Post model to datbase table
+	router.Gin.Run(":8000")           //server started on 8000 port
 
-		infrastructure.LoadEnv()     //loading env
-		infrastructure.NewDatabase() //new database connection
-
-		context.JSON(http.StatusOK, gin.H{"data": "Hello World"})
-	})
-
-	router.Run(":8000")
 }
